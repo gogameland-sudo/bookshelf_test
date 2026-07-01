@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나의 독서 기록장</title>
+    
+    <!-- Tailwind CSS (스타일링) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Phosphor Icons (아이콘) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Google Fonts (글꼴) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        /* 폼 입력 요소 기본 스타일 수정 */
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+
+        /* 별점 라디오 버튼 숨기기 (아이콘으로 대체) */
+        .rating-group input {
+            display: none;
+        }
+
+        /* 별점 라벨 기본 스타일 (빈 별) */
+        .rating-group label {
+            cursor: pointer;
+            color: #e2e8f0;
+            font-size: 1.75rem;
+            transition: color 0.2s ease-in-out;
+        }
+
+        /* 호버 시 및 체크된 상태의 별 스타일 (채워진 별) */
+        .rating-group label:hover,
+        .rating-group label:hover ~ label,
+        .rating-group input:checked ~ label {
+            color: #fbbf24;
+        }
+        
+        .rating-group {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: flex-end;
+        }
+
+        /* 파일 업로드 버튼 커스텀 */
+        input[type="file"]::file-selector-button {
+            border: none;
+            background: #eff6ff;
+            color: #2563eb;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            margin-right: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        input[type="file"]::file-selector-button:hover {
+            background: #dbeafe;
+        }
+
+        /* 애니메이션 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        
+        /* 스크롤바 꾸미기 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased h-screen flex justify-center overflow-hidden">
+
+    <div class="w-full max-w-6xl h-full flex flex-col md:flex-row bg-white shadow-2xl">
+        
+        <!-- 왼쪽: 기록 입력 폼 (고정 영역) -->
+        <div class="w-full md:w-[400px] bg-slate-50 p-6 border-r border-slate-200 overflow-y-auto flex-shrink-0">
+            <header class="mb-6 flex items-center gap-3 pb-4 border-b border-slate-200">
+                <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-200">
+                    <i class="ph ph-books text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-800">독서 기록장</h1>
+                    <p class="text-xs text-slate-500">지식의 발자취를 남겨보세요</p>
+                </div>
+            </header>
+
+            <form id="book-form" class="space-y-4">
+                <!-- 책 제목 & 저자 -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">책 제목 <span class="text-red-500">*</span></label>
+                        <input type="text" id="title" required placeholder="예: 구글 엔지니어는 이렇게 일한다"
+                            class="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg focus:border-blue-500 transition-colors text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">저자 <span class="text-red-500">*</span></label>
+                        <input type="text" id="author" required placeholder="예: 타이터스 윈터스"
+                            class="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg focus:border-blue-500 transition-colors text-sm">
+                    </div>
+                </div>
+
+                <!-- 읽은 날짜 -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">완독 날짜 <span class="text-red-500">*</span></label>
+                    <input type="date" id="date" required
+                        class="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg focus:border-blue-500 transition-colors text-sm">
+                </div>
+
+                <!-- 표지 이미지 (선택) -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">표지 이미지 (선택)</label>
+                    <input type="file" id="cover" accept="image/*"
+                        class="w-full text-sm text-slate-500 bg-white border border-slate-300 rounded-lg">
+                    <p class="text-[11px] text-slate-400 mt-1">* 용량 최적화를 위해 자동으로 리사이징됩니다.</p>
+                </div>
+
+                <!-- 서점 링크 (선택) -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">서점 링크 (선택)</label>
+                    <div class="relative">
+                        <i class="ph ph-link absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="url" id="link" placeholder="https://..."
+                            class="w-full pl-9 pr-4 py-2 bg-white border border-slate-300 rounded-lg focus:border-blue-500 transition-colors text-sm">
+                    </div>
+                </div>
+
+                <!-- 별점 -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">나의 평점 <span class="text-red-500">*</span></label>
+                    <div class="rating-group" id="rating-container">
+                        <input type="radio" id="star5" name="rating" value="5">
+                        <label for="star5" title="5점"><i class="ph-fill ph-star"></i></label>
+                        
+                        <input type="radio" id="star4" name="rating" value="4">
+                        <label for="star4" title="4점"><i class="ph-fill ph-star"></i></label>
+                        
+                        <input type="radio" id="star3" name="rating" value="3">
+                        <label for="star3" title="3점"><i class="ph-fill ph-star"></i></label>
+                        
+                        <input type="radio" id="star2" name="rating" value="2">
+                        <label for="star2" title="2점"><i class="ph-fill ph-star"></i></label>
+                        
+                        <input type="radio" id="star1" name="rating" value="1" checked>
+                        <label for="star1" title="1점"><i class="ph-fill ph-star"></i></label>
+                    </div>
+                </div>
+
+                <!-- 한 줄 평 -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">한 줄 평 (선택)</label>
+                    <textarea id="review" rows="2" placeholder="기억에 남는 문장이나 감상을 적어보세요."
+                        class="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg focus:border-blue-500 transition-colors text-sm resize-none"></textarea>
+                </div>
+
+                <!-- 저장 버튼 -->
+                <button type="submit" id="submit-btn"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition-all active:scale-[0.98] shadow-md shadow-blue-500/30 flex items-center justify-center gap-2 mt-4">
+                    <i class="ph ph-plus-circle text-lg"></i> 서재에 추가하기
+                </button>
+            </form>
+        </div>
+
+        <div class="flex-1 flex flex-col h-full bg-white overflow-hidden">
+            
+            <!-- 대시보드 영역 -->
+            <div class="bg-slate-800 text-white p-6 md:p-8 flex-shrink-0">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold mb-1">나의 독서 대시보드</h2>
+                        <p class="text-slate-400 text-sm" id="current-year-label">2024년 독서 현황</p>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-700/50 px-3 py-1.5 rounded-lg border border-slate-600">
+                        <label class="text-xs text-slate-300">올해 목표</label>
+                        <input type="number" id="goal-input" value="10" min="1" 
+                            class="w-16 bg-transparent text-white font-bold text-right outline-none border-b border-slate-500 focus:border-blue-400">
+                        <span class="text-xs text-slate-300">권</span>
+                    </div>
+                </div>
+
+                <!-- 통계 카드 -->
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="bg-slate-700/40 rounded-xl p-4 border border-slate-600/50">
+                        <div class="text-slate-400 text-xs font-medium mb-1 flex items-center gap-1">
+                            <i class="ph ph-books"></i> 올해 읽은 책
+                        </div>
+                        <div class="text-3xl font-bold text-white" id="year-count">0<span class="text-sm font-normal text-slate-400 ml-1">권</span></div>
+                    </div>
+                    <div class="bg-slate-700/40 rounded-xl p-4 border border-slate-600/50">
+                        <div class="text-slate-400 text-xs font-medium mb-1 flex items-center gap-1">
+                            <i class="ph ph-calendar-check"></i> 이번 달 읽은 책
+                        </div>
+                        <div class="text-3xl font-bold text-blue-400" id="month-count">0<span class="text-sm font-normal text-slate-400 ml-1">권</span></div>
+                    </div>
+                    <div class="bg-slate-700/40 rounded-xl p-4 border border-slate-600/50">
+                        <div class="text-slate-400 text-xs font-medium mb-1 flex items-center gap-1">
+                            <i class="ph ph-archive"></i> 총 누적 독서
+                        </div>
+                        <div class="text-3xl font-bold text-amber-400" id="total-count">0<span class="text-sm font-normal text-slate-400 ml-1">권</span></div>
+                    </div>
+                </div>
+
+                <!-- 목표 진행률 -->
+                <div>
+                    <div class="flex justify-between text-xs text-slate-300 mb-2">
+                        <span>목표 달성률</span>
+                        <span id="progress-text" class="font-bold text-blue-400">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-700 rounded-full h-2.5 overflow-hidden">
+                        <div id="progress-bar" class="bg-gradient-to-r from-blue-500 to-indigo-500 h-2.5 rounded-full transition-all duration-1000 ease-out w-0"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 기록 목록 영역 -->
+            <div class="flex-1 overflow-y-auto p-6 md:p-8 bg-slate-50/50 relative">
+                
+                <div class="flex justify-between items-center mb-6 sticky top-0 bg-slate-50/90 backdrop-blur-sm z-10 py-2">
+                    <h3 class="text-lg font-bold text-slate-800">독서 목록</h3>
+                    <select id="sort-select" class="text-sm bg-white border border-slate-300 rounded-lg px-3 py-1.5 outline-none">
+                        <option value="latest">최근 읽은 순</option>
+                        <option value="oldest">오래된 순</option>
+                        <option value="rating">평점 높은 순</option>
+                    </select>
+                </div>
+
+                <!-- 기록이 없을 때 빈 상태 -->
+                <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 hidden pointer-events-none">
+                    <div class="w-24 h-24 mb-4 rounded-full bg-slate-100 flex items-center justify-center">
+                        <i class="ph ph-books text-5xl text-slate-300"></i>
+                    </div>
+                    <p class="text-lg font-medium text-slate-600">서재가 비어있습니다.</p>
+                    <p class="text-sm mt-1">왼쪽에서 첫 번째 책을 기록해보세요!</p>
+                </div>
+
+                <!-- 목록 컨테이너 -->
+                <div id="book-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- 자바스크립트로 렌더링 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 커스텀 알림 모달 -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-800 text-white px-6 py-3 rounded-lg shadow-xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-2">
+        <i class="ph-fill ph-check-circle text-green-400 text-xl"></i>
+        <span id="toast-msg">저장되었습니다.</span>
+    </div>
+
+    <script>
+        // DOM 요소
+        const form = document.getElementById('book-form');
+        const titleInput = document.getElementById('title');
+        const authorInput = document.getElementById('author');
+        const dateInput = document.getElementById('date');
+        const coverInput = document.getElementById('cover');
+        const linkInput = document.getElementById('link');
+        const reviewInput = document.getElementById('review');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        const bookListContainer = document.getElementById('book-list');
+        const emptyState = document.getElementById('empty-state');
+        const sortSelect = document.getElementById('sort-select');
+        
+        // 대시보드 요소
+        const goalInput = document.getElementById('goal-input');
+        const yearCountEl = document.getElementById('year-count');
+        const monthCountEl = document.getElementById('month-count');
+        const totalCountEl = document.getElementById('total-count');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progress-text');
+        const currentYearLabel = document.getElementById('current-year-label');
+
+        // 스토리지 키
+        const DATA_KEY = 'my_reading_log_data_v2';
+        const GOAL_KEY = 'my_reading_goal';
+
+        // 상태
+        let books = [];
+        let yearlyGoal = 10;
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth() + 1;
+
+        // 초기화
+        function init() {
+            // 오늘 날짜 설정
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.value = today;
+            currentYearLabel.textContent = `${currentYear}년 독서 현황`;
+
+            loadData();
+            
+            // 이벤트 리스너 등록
+            form.addEventListener('submit', handleFormSubmit);
+            sortSelect.addEventListener('change', renderBooks);
+            goalInput.addEventListener('change', (e) => {
+                const val = parseInt(e.target.value);
+                if(val > 0) {
+                    yearlyGoal = val;
+                    localStorage.setItem(GOAL_KEY, yearlyGoal);
+                    updateDashboard();
+                    showToast('목표가 업데이트 되었습니다.');
+                }
+            });
+        }
+
+        function loadData() {
+            // 목표 불러오기
+            const storedGoal = localStorage.getItem(GOAL_KEY);
+            if (storedGoal) {
+                yearlyGoal = parseInt(storedGoal);
+                goalInput.value = yearlyGoal;
+            }
+
+            // 책 데이터 불러오기
+            const storedData = localStorage.getItem(DATA_KEY);
+            if (storedData) {
+                try {
+                    books = JSON.parse(storedData);
+                } catch (e) {
+                    console.error("데이터 파싱 오류", e);
+                    books = [];
+                }
+            } else {
+                // 구버전 데이터 마이그레이션 확인
+                const oldData = localStorage.getItem('my_reading_log');
+                if(oldData) {
+                    try {
+                        books = JSON.parse(oldData);
+                        saveData(); // 새 키로 저장
+                    } catch(e) {}
+                }
+            }
+            
+            updateDashboard();
+            renderBooks();
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem(DATA_KEY, JSON.stringify(books));
+            } catch(e) {
+                // 이미지 크기 등으로 로컬 스토리지 한도 초과 시
+                showToast('저장 공간이 부족합니다. 이미지가 너무 많을 수 있습니다.', true);
+                console.error(e);
+            }
+        }
+
+        // 토스트 알림
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const msg = document.getElementById('toast-msg');
+            const icon = toast.querySelector('i');
+            
+            msg.textContent = message;
+            
+            if(isError) {
+                icon.className = 'ph-fill ph-warning-circle text-red-400 text-xl';
+            } else {
+                icon.className = 'ph-fill ph-check-circle text-green-400 text-xl';
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function updateDashboard() {
+            let yearCount = 0;
+            let monthCount = 0;
+            const currentYearStr = currentYear.toString();
+            const currentMonthStr = currentMonth.toString().padStart(2, '0');
+            const currentYearMonth = `${currentYearStr}-${currentMonthStr}`;
+
+            books.forEach(book => {
+                if(!book.date) return;
+                
+                // date 형식: YYYY-MM-DD
+                if(book.date.startsWith(currentYearStr)) {
+                    yearCount++;
+                }
+                if(book.date.startsWith(currentYearMonth)) {
+                    monthCount++;
+                }
+            });
+
+            // 카운트 업데이트
+            yearCountEl.innerHTML = `${yearCount}<span class="text-sm font-normal text-slate-400 ml-1">권</span>`;
+            monthCountEl.innerHTML = `${monthCount}<span class="text-sm font-normal text-slate-400 ml-1">권</span>`;
+            totalCountEl.innerHTML = `${books.length}<span class="text-sm font-normal text-slate-400 ml-1">권</span>`;
+
+            // 프로그래스바 업데이트
+            let progress = 0;
+            if (yearlyGoal > 0) {
+                progress = Math.min(Math.round((yearCount / yearlyGoal) * 100), 100);
+            }
+            
+            const pBar = document.getElementById('progress-bar');
+            pBar.style.width = `${progress}%`;
+            progressText.textContent = `${progress}%`;
+            
+            // 100% 달성 시 색상 변경
+            if(progress >= 100) {
+                pBar.classList.remove('from-blue-500', 'to-indigo-500');
+                pBar.classList.add('from-emerald-400', 'to-green-500');
+                progressText.classList.remove('text-blue-400');
+                progressText.classList.add('text-emerald-400');
+            } else {
+                pBar.classList.add('from-blue-500', 'to-indigo-500');
+                pBar.classList.remove('from-emerald-400', 'to-green-500');
+                progressText.classList.add('text-blue-400');
+                progressText.classList.remove('text-emerald-400');
+            }
+        }
+
+        function getStarsHTML(rating) {
+            let html = '<div class="flex gap-0.5">';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= rating) {
+                    html += '<i class="ph-fill ph-star text-amber-400"></i>';
+                } else {
+                    html += '<i class="ph-fill ph-star text-slate-200"></i>';
+                }
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function renderBooks() {
+            bookListContainer.innerHTML = '';
+
+            if (books.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+
+                // 정렬
+                const sortType = sortSelect.value;
+                let sortedBooks = [...books];
+                
+                if (sortType === 'latest') {
+                    sortedBooks.sort((a, b) => new Date(b.date) - new Date(a.date));
+                } else if (sortType === 'oldest') {
+                    sortedBooks.sort((a, b) => new Date(a.date) - new Date(b.date));
+                } else if (sortType === 'rating') {
+                    sortedBooks.sort((a, b) => b.rating - a.rating || new Date(b.date) - new Date(a.date));
+                }
+
+                sortedBooks.forEach((book, index) => {
+                    const card = document.createElement('div');
+                    // 애니메이션 딜레이 적용
+                    card.className = 'animate-fade-in bg-white border border-slate-200 rounded-2xl p-4 flex gap-4 hover:shadow-lg hover:-translate-y-1 transition-all group relative';
+                    card.style.animationDelay = `${index * 0.05}s`;
+                    
+                    // 표지 이미지 (없으면 기본 아이콘)
+                    const coverHTML = book.coverImage 
+                        ? `<img src="${book.coverImage}" class="w-20 h-28 object-cover rounded-lg shadow-sm bg-slate-100 flex-shrink-0" alt="표지">`
+                        : `<div class="w-20 h-28 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center flex-shrink-0">
+                                <i class="ph ph-image text-2xl text-slate-300"></i>
+                           </div>`;
+                           
+                    // 서점 링크 버튼
+                    const linkHTML = book.storeLink 
+                        ? `<a href="${book.storeLink}" target="_blank" rel="noopener noreferrer" 
+                              class="text-xs flex items-center gap-1 bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100 transition-colors">
+                              <i class="ph ph-shopping-cart"></i> 서점 가기
+                           </a>`
+                        : '';
+
+                    card.innerHTML = `
+                        ${coverHTML}
+                        <div class="flex-1 min-w-0 flex flex-col">
+                            <div class="flex justify-between items-start">
+                                <div class="pr-6">
+                                    <h3 class="text-base font-bold text-slate-800 truncate" title="${book.title}">${book.title}</h3>
+                                    <p class="text-sm text-slate-500 truncate">${book.author}</p>
+                                </div>
+                                <button onclick="deleteBook('${book.id}')" class="absolute top-4 right-4 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all bg-white rounded-full p-1 shadow-sm border border-slate-100">
+                                    <i class="ph ph-trash"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="mt-2 flex items-center gap-3">
+                                ${getStarsHTML(book.rating)}
+                                <span class="text-xs text-slate-400 flex items-center gap-1">
+                                    <i class="ph ph-calendar-blank"></i> ${book.date}
+                                </span>
+                            </div>
+                            
+                            ${book.review ? `
+                                <p class="mt-2 text-sm text-slate-600 line-clamp-2 italic border-l-2 border-slate-200 pl-2">
+                                    "${book.review}"
+                                </p>
+                            ` : ''}
+                            
+                            <div class="mt-auto pt-3">
+                                ${linkHTML}
+                            </div>
+                        </div>
+                    `;
+                    
+                    bookListContainer.appendChild(card);
+                });
+            }
+        }
+
+        // 이미지를 캔버스를 이용해 리사이징하여 Base64로 반환 (로컬 스토리지 용량 보호)
+        function processImage(file) {
+            return new Promise((resolve, reject) => {
+                if (!file) {
+                    resolve(null);
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        // 최대 너비 제한 (용량 최적화)
+                        const MAX_WIDTH = 150;
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // webp 또는 jpeg로 압축
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                        resolve(dataUrl);
+                    };
+                    img.onerror = () => reject("이미지 로드 실패");
+                };
+                reader.onerror = () => reject("파일 읽기 실패");
+            });
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+
+            // 버튼 상태 변경 (로딩 중)
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="ph ph-spinner animate-spin text-lg"></i> 저장 중...';
+            submitBtn.disabled = true;
+
+            try {
+                const title = titleInput.value.trim();
+                const author = authorInput.value.trim();
+                const date = dateInput.value;
+                const link = linkInput.value.trim();
+                const review = reviewInput.value.trim();
+                
+                const ratingInput = document.querySelector('input[name="rating"]:checked');
+                const rating = ratingInput ? parseInt(ratingInput.value) : 1;
+
+                // 이미지 처리
+                const coverFile = coverInput.files[0];
+                const coverBase64 = await processImage(coverFile);
+
+                const newBook = {
+                    id: 'book_' + Date.now(),
+                    title: title,
+                    author: author,
+                    date: date,
+                    rating: rating,
+                    review: review,
+                    coverImage: coverBase64, // 리사이징된 base64 이미지
+                    storeLink: link
+                };
+
+                books.push(newBook);
+                saveData();
+                updateDashboard();
+                renderBooks();
+
+                // 폼 초기화
+                titleInput.value = '';
+                authorInput.value = '';
+                reviewInput.value = '';
+                linkInput.value = '';
+                coverInput.value = '';
+                document.getElementById('star1').checked = true;
+                
+                showToast('기록이 성공적으로 저장되었습니다.');
+                
+                // 모바일에서 목록을 볼 수 있게 스크롤 
+                if(window.innerWidth < 768) {
+                    document.querySelector('.flex-1').scrollIntoView({ behavior: 'smooth' });
+                }
+
+            } catch (error) {
+                console.error(error);
+                showToast('저장 중 오류가 발생했습니다.', true);
+            } finally {
+                // 버튼 상태 복구
+                submitBtn.innerHTML = originalBtnText;
+                submitBtn.disabled = false;
+                titleInput.focus();
+            }
+        }
+
+        // 전역 스코프에 삭제 함수 노출
+        window.deleteBook = function(id) {
+            // 커스텀 모달이나 confirm 대신 심플하게 삭제 후 토스트 표시
+            books = books.filter(book => book.id !== id);
+            saveData();
+            updateDashboard();
+            renderBooks();
+            showToast('기록이 삭제되었습니다.');
+        };
+
+        // 앱 시작
+        init();
+    </script>
+</body>
+</html>
